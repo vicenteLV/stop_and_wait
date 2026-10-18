@@ -1,5 +1,4 @@
 import socket
-import aux_sockets
 import SocketTCP
 import random
 
@@ -14,7 +13,12 @@ while True:
         del cliente_socket
         break
 
+
+    cliente_socket.connect()
+    
+    """
     archivo_en_bytes = cliente_socket.text_to_bytes(ruta_archivo)
 
     cliente_socket.send_chunks(archivo_en_bytes)
+    """
 
