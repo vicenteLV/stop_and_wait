@@ -1,18 +1,20 @@
 import socket
 import aux_sockets
+import SocketTCP
+import random
 
 
-cliente_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_ad = ("localhost", 5000)
+cliente_socket = SocketTCP.SocketTCP()
+cliente_socket.dest_ad = ("localhost", 5000)
 
 while True:
     ruta_archivo = input("Ruta del archivo: ")
 
     if ruta_archivo == "cerrar":
-        cliente_socket.close()
+        del cliente_socket
         break
 
-    archivo_en_bytes = aux_sockets.text_to_bytes(ruta_archivo)
+    archivo_en_bytes = cliente_socket.text_to_bytes(ruta_archivo)
 
-    aux_sockets.send_chunks(archivo_en_bytes, cliente_socket, server_ad)
-    
+    cliente_socket.send_chunks(archivo_en_bytes)
+

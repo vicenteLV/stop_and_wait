@@ -1,15 +1,16 @@
 import socket
 import aux_sockets
+import SocketTCP
 
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket = SocketTCP.SocketTCP()
 
-ad = ("localhost", 5000)
+server_socket.bind_ad = ("localhost", 5000)
 
-server_socket.bind(ad)
+server_socket.socket.bind(server_socket.bind_ad)
 
 while True:
-    mensaje_cliente = aux_sockets.recv_chunks(server_socket)
+    mensaje_cliente = server_socket.recv_chunks()
 
     print(mensaje_cliente)
     
