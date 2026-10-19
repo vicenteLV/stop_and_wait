@@ -9,6 +9,8 @@ class SocketTCP:
         self.bind_ad : tuple[str, int] = None
         self.dest_ad : tuple[str, int] = None
 
+        self.canales : list = [] 
+
         #comunicacion
         self.syn : bool = None
         self.ack : bool = None
@@ -114,8 +116,16 @@ class SocketTCP:
         self.segment_dict = self.parse_segment(ack_segment)
         if (not self.segment_dict["syn"] and self.segment_dict["ack"] and not self.segment_dict["fin"]):
             if self.segment_dict["seq"] == seq_inicial + 2:
-                print(f"Conexion establecida con {cliente_ad}")
-                return
+                print(f"Ack recibido\nConexion establecida con {cliente_ad}")
+                socket_comunicacion = SocketTCP()
+                socket_comunicacion_ad = ("localhost", self.bind_ad[1] + 1)
+                socket_comunicacion.bind_ad = socket_comunicacion_ad
+                socket_comunicacion.seq = self.seq
+                socket_comunicacion.bind()
+
+                self.canales.append(socket_comunicacion)
+
+                return socket_comunicacion, socket_comunicacion_ad
             else:
                 print("SEQ del mensaje ACK no corresponde")
 
