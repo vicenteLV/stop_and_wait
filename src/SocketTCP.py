@@ -167,7 +167,6 @@ class SocketTCP:
                 socket_comunicacion.bind(socket_comunicacion_ad)
                 socket_comunicacion.dest_ad = cliente_ad
                 socket_comunicacion.seq = self.seq #sincronizado en seq_inicial + 2
-                socket_comunicacion.bind()
 
                 print(f"Canal de comunicacion establecido en {socket_comunicacion_ad}")
 
@@ -325,6 +324,97 @@ class SocketTCP:
         self.bytes_restantes -= len(datos_retorno)
 
         return datos_retorno
+
+
+
+    def close(self):
+        """SocketTCP -> None
+        lado del host que cierra la conexion"""
+        self.socket.settimeout(None)
+        seq_inicial = self.seq
+
+        #primer paso, FIN con el seq actual
+        self.syn = False
+        self.ack = False
+        self.fin = True
+        self.payload = b""
+
+        self.update_segment_dict()
+        fin_segment = self.create_segment(self.segment_dict)
+        self.socket.sendto(fin_segment, self.dest_ad)
+        print("FIN enviado...")
+
+        #2do paso, esperar fin-ack del otro host con seq_inicial + 1
+        fin_ack_segment, _ = self.socket.recvfrom(self.UDP_BUF_SIZE)
+        self.segment_dict = self.parse_segment(fin_ack_segment)
+
+        if not self.segment_dict["syn"] and self.segment_dict["ack"] and self.segment_dict["fin"]:
+            if self.segment_dict["seq"] == seq_inicial + 1:
+                print("FIN-ACK recibido")
+
+                #paso 3, enviar ultimo ACK con seq_inicial + 2 y cerrar socket
+                self.syn = False
+                self.ack = True
+                self.fin = False
+                self.seq = seq_inicial + 2
+                self.payload = b""
+
+                self.update_segment_dict()
+                ack_segment = self.create_segment(self.segment_dict)
+                self.socket.sendto(ack_segment, self.dest_ad)
+                print("Ultimo ACK de cierre enviado")
+
+                self.socket.close()
+                print("Conexion cerrada (Host A)")
+            else:
+                print("SEQ en FIN-ACK no coincide")
+        else:
+            print("Flags no corresponden a FIN-ACK")
+
+
+
+    def recv_close(self):
+        """SocketTCP -> None
+        lado del host que recibe la solicitud de cierre"""
+        self.socket.settimeout(None)
+
+        #primer paso, esperar FIN
+        fin_segment, cliente_ad = self.socket.recvfrom(self.UDP_BUF_SIZE)
+        self.dest_ad = cliente_ad
+        self.segment_dict = self.parse_segment(fin_segment)
+        seq_inicial = self.segment_dict["seq"]
+
+        if not self.segment_dict["syn"] and not self.segment_dict["ack"] and self.segment_dict["fin"]:
+            print("FIN recibido")
+
+            #2do paso, responder con fin-ack y seq_inicial + 1
+            self.syn = False
+            self.ack = True
+            self.fin = True
+            self.seq = seq_inicial + 1
+            self.payload = b""
+
+            self.update_segment_dict()
+            fin_ack_segment = self.create_segment(self.segment_dict)
+            self.socket.sendto(fin_ack_segment, self.dest_ad)
+            print("FIN-ACK enviado")
+        else:
+            print("Flags no corresponden a FIN")
+
+        #3er paso, esperar ultimo ACK con seq_inicial + 2 y cerrar socket
+        ack_segment, _ = self.socket.recvfrom(self.UDP_BUF_SIZE)
+        self.segment_dict = self.parse_segment(ack_segment)
+
+        if not self.segment_dict["syn"] and self.segment_dict["ack"] and not self.segment_dict["fin"]:
+            if self.segment_dict["seq"] == seq_inicial + 2:
+                self.update_flags()
+                print("Ultimo ACK de cierre recibido")
+                self.socket.close()
+                print("Conexion cerrada (Host B)")
+            else:
+                print("SEQ del ultimo ACK de cierre no coincide")
+        else:
+            print("Flags no corresponden al ultimo ACK de cierre")
 
 
 
