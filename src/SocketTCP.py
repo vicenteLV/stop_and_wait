@@ -32,6 +32,14 @@ class SocketTCP:
 
 
 
+    def __str__(self):
+        if (self.bind_ad != None):
+            print(f"Socket servidor\nEscucha en {self.bind_ad}")
+        else:
+            print(f"Socket cliente\nConsulta a {self.dest_ad}")
+
+
+
     def update_segment_dict(self):
         self.segment_dict["syn"] = self.syn
         self.segment_dict["ack"] = self.ack
