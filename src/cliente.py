@@ -6,6 +6,8 @@ import random
 cliente_socket = SocketTCP.SocketTCP()
 cliente_socket.dest_ad = ("localhost", 5000)
 
+print(cliente_socket)
+
 while True:
     ruta_archivo = input("Ruta del archivo: ")
 

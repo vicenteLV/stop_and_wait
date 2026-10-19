@@ -34,9 +34,9 @@ class SocketTCP:
 
     def __str__(self):
         if (self.bind_ad != None):
-            print(f"Socket servidor\nEscucha en {self.bind_ad}")
+            return f"Socket servidor\nEscucha en {self.bind_ad}"
         else:
-            print(f"Socket cliente\nConsulta a {self.dest_ad}")
+            return f"Socket cliente\nConsulta a {self.dest_ad}"
 
 
 
@@ -144,6 +144,8 @@ class SocketTCP:
                 socket_comunicacion.bind_ad = socket_comunicacion_ad #mismo host distinto puerto (+1)
                 socket_comunicacion.seq = self.seq
                 socket_comunicacion.bind()
+
+                print(f"Canal de comunicacion establecido en {socket_comunicacion_ad}")
 
                 return socket_comunicacion, socket_comunicacion_ad
             else:
