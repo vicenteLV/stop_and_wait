@@ -49,15 +49,25 @@ class SocketTCP:
 
 
 
+    def update_flags(self):
+        self.syn = self.segment_dict["syn"]
+        self.ack = self.segment_dict["ack"]
+        self.fin = self.segment_dict["fin"]
+        self.seq = self.segment_dict["seq"]
+        self.payload = self.segment_dict["payload"]
+
+
+
     def bind(self):
         self.socket.bind(self.bind_ad)
 
 
 
     def connect(self):
-        """lado del cliente del 3 way handshake"""
+        """SocketTCP -> None
+        lado del cliente del 3 way handshake"""
         #inicializar variables en primer paso del handshake
-        seq_inicial = random.randint(0, 100) #se guarda primer seq en una variable
+        seq_inicial = random.randint(0, 100) #se guarda primer seq en una variable para comparacion en 2do paso
         self.syn = True
         self.ack = False
         self.fin = False
@@ -67,12 +77,14 @@ class SocketTCP:
         self.update_segment_dict() #actualizar diccionario para mensajes del socket
         syn_segment = self.create_segment(self.segment_dict)
         self.socket.sendto(syn_segment, self.dest_ad) 
-        print("Primer SYN enviado")
+        print("SYN enviado...") 
 
-        #esperar syn_ack de vuelta
+        #esperar syn_ack de vuelta, 2do paso
         syn_ack_segment, _ = self.socket.recvfrom(self.CONT_BUF_SIZE + 2)
         print("SYN-ACK recibido")
         self.segment_dict = self.parse_segment(syn_ack_segment)
+
+        #enviar ACK
         if (self.segment_dict["syn"] and self.segment_dict["ack"] and not self.segment_dict["fin"]):
             if self.segment_dict["seq"] == (seq_inicial + 1):
                 self.syn = False
@@ -88,9 +100,9 @@ class SocketTCP:
                 return
 
             else:
-                print("Numero SEQ incorrecto")
+                print("SEQ en segundo paso no coincide")
         else:
-            print("Problema con flags en segundo paso del handshake")
+            print("Flags no corresponden a SYN-ACK")
         
 
 
@@ -99,7 +111,9 @@ class SocketTCP:
 
 
     def accept(self):
-        """lado del server del 3 way"""
+        """SocketTCP -> None
+        lado del servidor del 3 way handshake"""
+        #espera SYN, buffer son 16 bytes (payload) + 2 bytes de header tcp (flags y seq)
         syn_segment, cliente_ad = self.socket.recvfrom(self.CONT_BUF_SIZE + 2)
         print("Primer SYN recibido")
         self.segment_dict = self.parse_segment(syn_segment)
@@ -114,7 +128,7 @@ class SocketTCP:
 
             self.update_segment_dict()
             syn_ack_segment = self.create_segment(self.segment_dict)
-            self.socket.sendto(syn_ack_segment, cliente_ad)
+            self.socket.sendto(syn_ack_segment, cliente_ad)  
             print("SYN-ACK enviado")
         else:
             print("Flags no corresponden a mensaje de sincronización")
@@ -124,14 +138,12 @@ class SocketTCP:
         self.segment_dict = self.parse_segment(ack_segment)
         if (not self.segment_dict["syn"] and self.segment_dict["ack"] and not self.segment_dict["fin"]):
             if self.segment_dict["seq"] == seq_inicial + 2:
-                print(f"Ack recibido\nConexion establecida con {cliente_ad}")
-                socket_comunicacion = SocketTCP()
+                print(f"ACK recibido\nConexion establecida con {cliente_ad}")
+                socket_comunicacion = SocketTCP() 
                 socket_comunicacion_ad = ("localhost", self.bind_ad[1] + 1)
-                socket_comunicacion.bind_ad = socket_comunicacion_ad
+                socket_comunicacion.bind_ad = socket_comunicacion_ad #mismo host distinto puerto (+1)
                 socket_comunicacion.seq = self.seq
                 socket_comunicacion.bind()
-
-                self.canales.append(socket_comunicacion)
 
                 return socket_comunicacion, socket_comunicacion_ad
             else:
